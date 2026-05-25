@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabuu - Admin Girişi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 h-screen flex items-center justify-center font-sans">
+    <div class="bg-slate-800 p-8 rounded-xl shadow-2xl w-80 text-center border-t-4 border-indigo-500">
+        <h1 class="text-3xl font-extrabold text-white mb-2">ÖĞRETMEN</h1>
+        <p class="text-indigo-400 mb-6 text-sm font-semibold">Sistem Girişi</p>
+        
+        {% if hata %}
+            <p class="text-red-500 font-bold text-sm mb-4 bg-red-100/10 py-2 rounded">{{ hata }}</p>
+        {% endif %}
+
+        <form method="POST" action="/admin" class="space-y-4">
+            <input type="password" name="sifre" placeholder="Admin Şifresi" required
+                   class="w-full px-4 py-3 bg-slate-700 text-white border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center tracking-widest font-bold">
+            
+            <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 shadow-md transition-all active:scale-95">
+                Giriş Yap
+            </button>
+        </form>
+        <a href="/" class="block mt-4 text-xs text-slate-500 hover:text-slate-300">Öğrenci Girişine Dön</a>
+    </div>
+</body>
+</html>

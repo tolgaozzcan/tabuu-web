@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabuu - Öğrenci Girişi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 h-screen flex items-center justify-center font-sans relative">
+    <a href="/" class="absolute top-6 left-6 text-slate-500 font-bold hover:text-slate-800 transition-colors">← Geri Dön</a>
+    <div class="bg-white p-8 rounded-xl shadow-lg w-80 text-center border-t-4 border-blue-500">
+        <div class="text-4xl mb-4">🎓</div>
+        <h1 class="text-2xl font-extrabold text-slate-800 mb-6">ÖĞRENCİ GİRİŞİ</h1>
+        <div class="space-y-4">
+            <input type="text" id="playerName" placeholder="Adınız" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 font-semibold text-slate-700">
+            <input type="text" id="roomId" placeholder="Oda ID (Örn: TABUU-1234)" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-center tracking-widest font-bold uppercase text-slate-700">
+            <button onclick="oyunaKatil()" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 shadow-md transition-all active:scale-95 text-lg">Dönüşüm Başlasın!</button>
+        </div>
+    </div>
+
+    <script>
+        async function oyunaKatil() {
+            const isim = document.getElementById('playerName').value;
+            const odaId = document.getElementById('roomId').value;
+            if(isim === "" || odaId === "") { alert("Lütfen adınızı ve Hocanızın verdiği Oda ID'sini girin!"); return; }
+            try {
+                const response = await fetch('/oda_kontrol', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({oda_id: odaId})
+                });
+                const data = await response.json();
+                if(data.basarili) {
+                    localStorage.setItem('tabuu_oyuncu_ismi', isim);
+                    window.location.href = "/oyun";
+                } else {
+                    alert("Hatalı Oda ID! Ya yanlış yazdınız ya da hoca oyunu henüz başlatmadı.");
+                }
+            } catch(e) { alert("Sisteme bağlanılamadı."); }
+        }
+    </script>
+</body>
+</html>

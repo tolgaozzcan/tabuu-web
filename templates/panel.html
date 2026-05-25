@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabuu - Kontrol Paneli</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen flex items-center justify-center font-sans p-4">
+    <div class="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center border-t-4 border-indigo-600">
+        <h1 class="text-2xl font-black text-slate-800 mb-2">TABUU KONTROL PANELİ</h1>
+        <p class="text-slate-500 text-sm font-medium mb-8">Hoş geldiniz, oyunu buradan başlatabilirsiniz.</p>
+        
+        <form method="POST" action="/panel" class="mb-6">
+            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-xl shadow-md transition-all active:scale-95 text-lg">
+                + YENİ OYUN BAŞLAT (ŞİFRE ÜRET)
+            </button>
+        </form>
+
+        {% if oda_id %}
+        <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-lg mb-6 shadow-inner">
+            <p class="text-sm font-bold text-indigo-800 mb-1">Şu Anki Aktif Oda ID'niz:</p>
+            <p class="text-4xl font-black text-indigo-600 tracking-widest font-mono py-2">{{ oda_id }}</p>
+            <p class="text-xs text-slate-500 mt-2 font-semibold">Dersteki öğrencilere bu kodu verin.</p>
+        </div>
+        
+        <div class="flex gap-4">
+            <a href="/hoca" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg transition-colors shadow-sm">Yönetim Paneli</a>
+            <a href="/tahta" target="_blank" class="flex-1 bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 rounded-lg transition-colors shadow-sm">Tahta Ekranı</a>
+        </div>
+        {% else %}
+        <div class="bg-slate-50 border border-slate-200 p-4 rounded-lg mb-6 text-slate-500 text-sm font-medium">
+            Şu an aktif bir oyun yok. Yukarıdaki butona basarak başlatın.
+        </div>
+        {% endif %}
+        
+        <a href="/" class="block mt-6 text-sm text-red-500 font-bold hover:text-red-700">Çıkış Yap</a>
+    </div>
+</body>
+</html>
