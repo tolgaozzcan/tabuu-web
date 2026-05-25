@@ -178,7 +178,7 @@ def sureyi_beklet():
 
 @socketio.on('sureyi_devam_ettir')
 def sureyi_devam_ettir(data): 
-    socketio.emit('sayac_devam_ediyor', data)
+    socketio.emit('sayac_basladi', data)
 
 @socketio.on('dogru_bildi')
 def dogru_islem():
