@@ -6,7 +6,7 @@ from flask_socketio import SocketIO
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'cok_gizli_tabuu_sifresi_2026'
-socketio = SocketIO(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 ADMIN_SIFRESI = "Almanca123!" 
 aktif_oda_id = None 
