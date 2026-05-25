@@ -17,16 +17,16 @@
 
     <div class="flex-1 p-4 flex flex-col">
         <div class="bg-white rounded-2xl shadow-sm p-4 mb-4 flex justify-between items-center border border-slate-200">
-            <div class="text-center">
-                <p class="text-xs font-bold text-slate-400 uppercase">Takım A</p>
+            <div class="text-center w-1/3">
+                <p id="isim_a_oyun" class="text-xs font-bold text-slate-400 uppercase">Takım A</p>
                 <p id="skor_a" class="text-2xl font-black text-blue-600">0</p>
             </div>
-            <div class="text-center bg-slate-800 px-6 py-2 rounded-xl shadow-inner">
+            <div class="text-center w-1/3 bg-slate-800 px-2 py-2 rounded-xl shadow-inner">
                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">SÜRE</p>
                 <p id="sayac" class="text-4xl font-black text-red-500 font-mono">90</p>
             </div>
-            <div class="text-center">
-                <p class="text-xs font-bold text-slate-400 uppercase">Takım B</p>
+            <div class="text-center w-1/3">
+                <p id="isim_b_oyun" class="text-xs font-bold text-slate-400 uppercase">Takım B</p>
                 <p id="skor_b" class="text-2xl font-black text-green-600">0</p>
             </div>
         </div>
@@ -56,17 +56,20 @@
         const oyuncuIsmi = localStorage.getItem('tabuu_oyuncu_ismi') || 'Misafir_' + Math.floor(Math.random()*1000);
         document.getElementById('kullanici_adi_gostergesi').innerText = oyuncuIsmi;
 
-        // SESLER DEVRE DIŞI BIRAKILDI
-        // const audioCorrect = new Audio('/static/sounds/correct.mp3');
-        // const audioFail = new Audio('/static/sounds/fail.mp3');
-        // const audioBeep = new Audio('/static/sounds/beep.mp3');
-        // const audioStart = new Audio('/static/sounds/start.mp3');
-
         socket.on('connect', () => { socket.emit('oyuna_katil', {isim: oyuncuIsmi}); });
 
         socket.on('oyun_sifirlandi', function() {
             alert("Oyun hocanız tarafından sonlandırıldı veya yeniden başlatıldı.");
             window.location.href = "/";
+        });
+
+        // YENİ: İsimleri ve süreleri güncelleyen dinleyici
+        socket.on('ayarlar_guncellendi', function(data) {
+            document.getElementById('isim_a_oyun').innerText = data.takim_a_isim;
+            document.getElementById('isim_b_oyun').innerText = data.takim_b_isim;
+            if(document.getElementById('sayac').innerText === "90") {
+                document.getElementById('sayac').innerText = data.sure;
+            }
         });
 
         socket.on('skor_guncellendi', function(data) {
@@ -77,7 +80,6 @@
         socket.on('yeni_kelime_geldi', function(paket) {
             const k = paket.kelime_verisi;
             if(paket.anlatici === oyuncuIsmi) {
-                // audioStart.play().catch(e=>console.log(e)); // Ses kapatıldı
                 document.getElementById('durum_mesaji').classList.add('hidden');
                 document.getElementById('aktif_kelime_alani').classList.remove('hidden');
                 document.getElementById('k_seviye').innerText = k.seviye;
@@ -105,47 +107,36 @@
             }
         });
 
-        // ÇİFTE KİLİTLİ SAYAÇ SİSTEMİ (ÖĞRENCİ)
         let sayacInterval;
         let globalKalanSure = 90;
 
         socket.on('sayac_basladi', function(data) { sayaciDondur(data.sure); });
         socket.on('sayac_devam_ediyor', function(data) { sayaciDondur(data.sure); });
-        
         socket.on('sayac_beklemede', function() { clearInterval(sayacInterval); });
         socket.on('sayac_durdu', function() { clearInterval(sayacInterval); });
 
         function sayaciDondur(sure) {
             clearInterval(sayacInterval); 
-            
             globalKalanSure = sure;
             document.getElementById('sayac').innerText = globalKalanSure;
             
             sayacInterval = setInterval(() => {
                 globalKalanSure--;
-                // if(globalKalanSure <= 5 && globalKalanSure > 0) { audioBeep.play().catch(e=>console.log(e)); } // Ses kapatıldı
-                
                 if(globalKalanSure <= 0) {
                     globalKalanSure = 0;
                     clearInterval(sayacInterval); 
                 }
-                
                 document.getElementById('sayac').innerText = globalKalanSure;
             }, 1000);
         }
 
-        // ZORUNLU DURDURMA: Animasyon geldiği an sayaç kilitlenir
         socket.on('dogru_bildi_animasyonu', function(data) {
             clearInterval(sayacInterval); 
-            // if(data.anlatici === oyuncuIsmi) audioCorrect.play().catch(e => console.log(e)); // Ses kapatıldı
-            
             confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         });
 
         socket.on('tabuu_animasyonu', function(data) {
             clearInterval(sayacInterval); 
-            // if(data.anlatici === oyuncuIsmi) audioFail.play().catch(e => console.log(e)); // Ses kapatıldı
-            
             document.body.classList.add('bg-red-600');
             document.body.classList.remove('bg-slate-100');
             setTimeout(() => {

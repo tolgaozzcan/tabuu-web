@@ -6,13 +6,13 @@ from flask_socketio import SocketIO
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'cok_gizli_tabuu_sifresi_2026'
-# CORS izni eklendi: Telefondan veya başka ağdan gelen bağlantıları engellemez
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 ADMIN_SIFRESI = "Almanca123!" 
 aktif_oda_id = None 
 
-oyun_durumu = {'takim_a_skor': 0, 'takim_b_skor': 0, 'aktif_takim': 'A'}
+# YENİ: Takım isimleri ve süre hafızaya eklendi
+oyun_durumu = {'takim_a_skor': 0, 'takim_b_skor': 0, 'aktif_takim': 'A', 'takim_a_isim': 'Takım A', 'takim_b_isim': 'Takım B', 'sure': 90}
 oyuncular = {'bekleme': [], 'takim_a': [], 'takim_b': []}
 baglantilar = {} 
 
@@ -58,7 +58,8 @@ def admin_panel():
     if request.method == 'POST':
         rastgele = ''.join(random.choices(string.digits, k=4))
         aktif_oda_id = f"TABUU-{rastgele}"
-        oyun_durumu = {'takim_a_skor': 0, 'takim_b_skor': 0, 'aktif_takim': 'A'}
+        # YENİ: Her yeni oyunda ayarları sıfırla
+        oyun_durumu = {'takim_a_skor': 0, 'takim_b_skor': 0, 'aktif_takim': 'A', 'takim_a_isim': 'Takım A', 'takim_b_isim': 'Takım B', 'sure': 90}
         oyuncular = {'bekleme': [], 'takim_a': [], 'takim_b': []}
         baglantilar = {}
         socketio.emit('oyun_sifirlandi')
@@ -98,6 +99,7 @@ def handle_katil(data):
     baglantilar[request.sid] = gelen_isim
     socketio.emit('oyuncular_guncellendi', oyuncular)
     socketio.emit('skor_guncellendi', oyun_durumu)
+    socketio.emit('ayarlar_guncellendi', oyun_durumu) # YENİ
 
 @socketio.on('disconnect')
 def handle_disconnect():
@@ -141,11 +143,14 @@ def oyuncu_basa_al(data):
 def hoca_verilerini_gonder():
     kelimeleri_hocaya_yolla()
     socketio.emit('oyuncular_guncellendi', oyuncular)
+    socketio.emit('skor_guncellendi', oyun_durumu)
+    socketio.emit('ayarlar_guncellendi', oyun_durumu) # YENİ
 
 @socketio.on('tahta_baglandi')
 def tahta_baglanti():
     socketio.emit('oyuncular_guncellendi', oyuncular)
     socketio.emit('skor_guncellendi', oyun_durumu)
+    socketio.emit('ayarlar_guncellendi', oyun_durumu) # YENİ
 
 @socketio.on('yeni_kelime_ekle')
 def veritabanina_ekle(data):
@@ -169,9 +174,18 @@ def manuel_kelime_yolla(data):
         aktif_oyuncu = oyuncular[aktif_takim_anahtari][0]
     socketio.emit('yeni_kelime_geldi', {'kelime_verisi': data, 'anlatici': aktif_oyuncu})
 
+# YENİ: Ayarları Güncelleme Sinyali
+@socketio.on('ayarlari_guncelle')
+def ayarlari_guncelle(data):
+    oyun_durumu['takim_a_isim'] = data.get('takim_a_isim', 'Takım A').upper()
+    oyun_durumu['takim_b_isim'] = data.get('takim_b_isim', 'Takım B').upper()
+    oyun_durumu['sure'] = int(data.get('sure', 90))
+    socketio.emit('ayarlar_guncellendi', oyun_durumu)
+
 @socketio.on('sureyi_baslat')
 def sure_baslat(): 
-    socketio.emit('sayac_basladi', {'sure': 90})
+    # YENİ: Artık sabit 90 değil, hocanın belirlediği süre gidiyor
+    socketio.emit('sayac_basladi', {'sure': oyun_durumu['sure']})
 
 @socketio.on('sureyi_beklet')
 def sureyi_beklet(): 
@@ -179,7 +193,6 @@ def sureyi_beklet():
 
 @socketio.on('sureyi_devam_ettir')
 def sureyi_devam_ettir(data): 
-    # SENKRONİZASYON ÇÖZÜMÜ: Devam et denildiğinde sanki baştan başlıyormuş gibi sinyal yolla
     socketio.emit('sayac_basladi', data)
 
 @socketio.on('dogru_bildi')
