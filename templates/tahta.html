@@ -8,87 +8,138 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
-<body class="bg-slate-900 text-white min-h-screen p-8 overflow-hidden flex flex-col">
-    <div class="flex justify-between items-center bg-slate-800 p-8 rounded-3xl shadow-2xl mb-12 border-b-4 border-slate-700">
+<body class="bg-slate-900 text-white min-h-screen p-8 overflow-hidden flex flex-col justify-center">
+
+    <div class="flex justify-between items-center mb-12 bg-slate-800 p-8 rounded-3xl shadow-2xl border-b-8 border-slate-700">
         <div class="text-center w-1/3">
-            <h2 class="text-4xl text-blue-400 font-black tracking-widest mb-2 uppercase">Takım A</h2>
-            <div id="skor_a" class="text-8xl font-black text-white">0</div>
+            <h2 class="text-4xl text-blue-400 font-black tracking-widest mb-2 uppercase drop-shadow-md">Takım A</h2>
+            <div id="skor_a" class="text-8xl font-black text-white drop-shadow-lg">0</div>
         </div>
-        <div class="text-center w-1/3 bg-slate-900 py-6 rounded-3xl border border-slate-700 shadow-inner">
-            <p id="sayac_baslik" class="text-slate-400 font-bold tracking-widest uppercase mb-2">KALAN SÜRE</p>
-            <div id="sayac" class="text-9xl font-black text-red-500 font-mono">90</div>
+        
+        <div class="text-center w-1/3 bg-slate-900 p-6 rounded-2xl shadow-inner border border-slate-700">
+            <p id="sayac_baslik" class="text-slate-400 text-sm font-bold tracking-widest mb-2 uppercase">Kalan Süre</p>
+            <div id="sayac" class="text-9xl font-black text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]">90</div>
         </div>
+
         <div class="text-center w-1/3">
-            <h2 class="text-4xl text-green-400 font-black tracking-widest mb-2 uppercase">Takım B</h2>
-            <div id="skor_b" class="text-8xl font-black text-white">0</div>
+            <h2 class="text-4xl text-green-400 font-black tracking-widest mb-2 uppercase drop-shadow-md">Takım B</h2>
+            <div id="skor_b" class="text-8xl font-black text-white drop-shadow-lg">0</div>
         </div>
     </div>
+
     <div class="text-center mb-12 flex-1 flex flex-col justify-center">
-        <p class="text-slate-400 text-2xl font-bold mb-4 uppercase tracking-[0.3em]">🎤 ANLATIYOR 🎤</p>
-        <div id="aktif_isim_kutusu" class="transition-all duration-700 transform"><div id="aktif_oyuncu" class="text-7xl font-black text-slate-300">BEKLENİYOR...</div></div>
-        <p id="siradaki_oyuncu" class="text-slate-500 text-xl mt-12 bg-slate-800 inline-block mx-auto px-6 py-2 rounded-full border border-slate-700">Sıradaki: Hazırlanıyor...</p>
+        <h3 class="text-xl text-slate-400 font-bold tracking-widest uppercase mb-4">🎤 ANLATIYOR 🎤</h3>
+        <div id="aktif_anlatici" class="text-7xl font-black text-white capitalize drop-shadow-2xl">Bilinmiyor</div>
+        <div id="siradaki_kisi" class="mt-4 text-slate-500 text-lg font-medium bg-slate-800/50 inline-block px-6 py-2 rounded-full">Sıradaki: -</div>
     </div>
-    <div class="grid grid-cols-3 gap-8 mt-auto">
-        <div class="bg-slate-800 rounded-2xl p-6 border-t-4 border-blue-500"><h3 class="text-xl font-bold text-blue-400 mb-4 border-b border-slate-700 pb-2">Takım A</h3><ul id="liste_takim_a" class="space-y-2"></ul></div>
-        <div class="bg-slate-800 rounded-2xl p-6 border-t-4 border-slate-500 opacity-80"><h3 class="text-xl font-bold text-slate-400 mb-4 border-b border-slate-700 pb-2">⏳ Bekleme Salonu</h3><ul id="liste_bekleme" class="space-y-2"></ul></div>
-        <div class="bg-slate-800 rounded-2xl p-6 border-t-4 border-green-500"><h3 class="text-xl font-bold text-green-400 mb-4 border-b border-slate-700 pb-2">Takım B</h3><ul id="liste_takim_b" class="space-y-2"></ul></div>
+
+    <div class="grid grid-cols-3 gap-6 opacity-80">
+        <div class="bg-slate-800 rounded-2xl p-6 border-t-4 border-blue-500">
+            <h3 class="text-blue-400 font-bold border-b border-slate-700 pb-2 mb-4">Takım A</h3>
+            <ul id="liste_a" class="space-y-2 font-medium text-slate-300"></ul>
+        </div>
+        <div class="bg-slate-800 rounded-2xl p-6 border-t-4 border-slate-600">
+            <h3 class="text-slate-400 font-bold border-b border-slate-700 pb-2 mb-4">⏳ Bekleme Salonu</h3>
+            <ul id="liste_bekleme" class="space-y-2 font-medium text-slate-400"></ul>
+        </div>
+        <div class="bg-slate-800 rounded-2xl p-6 border-t-4 border-green-500">
+            <h3 class="text-green-400 font-bold border-b border-slate-700 pb-2 mb-4">Takım B</h3>
+            <ul id="liste_b" class="space-y-2 font-medium text-slate-300"></ul>
+        </div>
     </div>
+
     <script>
         const socket = io();
-        const audioCorrect = new Audio('/static/sounds/correct.mp3');
-        const audioFail = new Audio('/static/sounds/fail.mp3');
-        const audioBeep = new Audio('/static/sounds/beep.mp3');
-        let sayacInterval, aktifTakim = 'A', oyuncuListeleri = { bekleme: [], takim_a: [], takim_b: [] };
+
+        // SESLER DEVRE DIŞI BIRAKILDI
+        // const audioCorrect = new Audio('/static/sounds/correct.mp3');
+        // const audioFail = new Audio('/static/sounds/fail.mp3');
+        // const audioBeep = new Audio('/static/sounds/beep.mp3');
 
         socket.on('connect', () => { socket.emit('tahta_baglandi'); });
+
         socket.on('skor_guncellendi', function(data) {
             document.getElementById('skor_a').innerText = data.takim_a_skor;
             document.getElementById('skor_b').innerText = data.takim_b_skor;
-            aktifTakim = data.aktif_takim;
-            sahneyiGuncelle();
         });
+
         socket.on('oyuncular_guncellendi', function(data) {
-            oyuncuListeleri = data;
-            listeyiCiz('liste_bekleme', data.bekleme, 'text-slate-400');
-            listeyiCiz('liste_takim_a', data.takim_a, 'text-blue-300');
-            listeyiCiz('liste_takim_b', data.takim_b, 'text-green-300');
-            sahneyiGuncelle();
+            guncelleListe('liste_bekleme', data.bekleme);
+            guncelleListe('liste_a', data.takim_a);
+            guncelleListe('liste_b', data.takim_b);
         });
-        function listeyiCiz(elementId, liste, textClass) {
+
+        function guncelleListe(elementId, liste) {
             const ul = document.getElementById(elementId);
             ul.innerHTML = '';
             liste.forEach((isim, index) => {
-                let stil = index === 0 ? `${textClass} font-black` : 'text-slate-500';
-                ul.innerHTML += `<li class="${stil}">${index + 1}. ${isim}</li>`;
+                let text = `${index + 1}. ${isim}`;
+                if(index === 0 && elementId !== 'liste_bekleme') {
+                    ul.innerHTML += `<li class="text-white font-bold text-lg bg-slate-700/50 p-2 rounded">${text} 🎯</li>`;
+                } else {
+                    ul.innerHTML += `<li class="p-2">${text}</li>`;
+                }
             });
         }
-        function sahneyiGuncelle() {
-            const aktif = aktifTakim === 'A' ? oyuncuListeleri.takim_a : oyuncuListeleri.takim_b;
-            const rakip = aktifTakim === 'A' ? oyuncuListeleri.takim_b : oyuncuListeleri.takim_a;
-            const isimEkrani = document.getElementById('aktif_oyuncu');
-            isimEkrani.innerText = aktif.length > 0 ? aktif[0] : "SEÇİM BEKLENİYOR...";
-            document.getElementById('siradaki_oyuncu').innerText = `Sıradaki: ${rakip.length > 0 ? rakip[0] : "Yok"}`;
-        }
-        socket.on('dogru_bildi_animasyonu', function() { audioCorrect.play(); confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } }); });
-        socket.on('tabuu_animasyonu', function() { audioFail.play(); yagdirUzgunYuz(); });
-        function yagdirUzgunYuz() {
-            const sad = confetti.shapeFromText({ text: '😢' });
-            const end = Date.now() + 2000;
-            (function frame() {
-                confetti({ particleCount: 5, angle: 270, spread: 120, origin: { x: Math.random(), y: -0.1 }, shapes: [sad], scalar: 3, gravity: 1.5, colors: ['#ffffff'] });
-                if (Date.now() < end) requestAnimationFrame(frame);
-            }());
-        }
+
+        socket.on('yeni_kelime_geldi', function(paket) {
+            document.getElementById('aktif_anlatici').innerText = paket.anlatici;
+        });
+
+        // ÇİFTE KİLİTLİ SAYAÇ SİSTEMİ (TAHTA)
+        let sayacInterval;
+        let globalKalanSure = 90;
+
         socket.on('sayac_basladi', function(data) { sayaciDondur(data.sure); });
+        socket.on('sayac_devam_ediyor', function(data) { sayaciDondur(data.sure); });
+        
+        socket.on('sayac_beklemede', function() { clearInterval(sayacInterval); });
         socket.on('sayac_durdu', function() { clearInterval(sayacInterval); });
+
         function sayaciDondur(sure) {
-            let kalan = sure;
+            clearInterval(sayacInterval); 
+            
+            globalKalanSure = sure;
+            document.getElementById('sayac').innerText = globalKalanSure;
+            
             sayacInterval = setInterval(() => {
-                kalan--; document.getElementById('sayac').innerText = kalan;
-                if(kalan <= 7) audioBeep.play();
-                if(kalan <= 0) { clearInterval(sayacInterval); yagdirUzgunYuz(); }
+                globalKalanSure--;
+                // if(globalKalanSure <= 5 && globalKalanSure > 0) { audioBeep.play().catch(e=>console.log(e)); } // Bip sesi kapatıldı
+                
+                if(globalKalanSure <= 0) {
+                    globalKalanSure = 0;
+                    clearInterval(sayacInterval); 
+                }
+                
+                document.getElementById('sayac').innerText = globalKalanSure;
             }, 1000);
         }
+
+        // ZORUNLU DURDURMA: Animasyon geldiği an sayaç kilitlenir
+        socket.on('dogru_bildi_animasyonu', function(data) {
+            clearInterval(sayacInterval); 
+            // audioCorrect.play().catch(e => console.log(e)); // Ses kapatıldı
+            
+            var duration = 3 * 1000;
+            var end = Date.now() + duration;
+            (function frame() {
+                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#22c55e', '#ffffff'] });
+                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#22c55e', '#ffffff'] });
+                if (Date.now() < end) { requestAnimationFrame(frame); }
+            }());
+        });
+
+        socket.on('tabuu_animasyonu', function(data) {
+            clearInterval(sayacInterval); 
+            // audioFail.play().catch(e => console.log(e)); // Ses kapatıldı
+            
+            document.body.classList.add('bg-red-900');
+            document.body.classList.remove('bg-slate-900');
+            setTimeout(() => {
+                document.body.classList.add('bg-slate-900');
+                document.body.classList.remove('bg-red-900');
+            }, 1000);
+        });
     </script>
 </body>
 </html>

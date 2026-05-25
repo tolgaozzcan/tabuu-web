@@ -1,153 +1,158 @@
 <!DOCTYPE html>
 <html lang="tr">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tabuu - Oyun Ekranı</title>
+    <title>Tabuu - Oyuncu Ekranı</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
+<body class="bg-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-300">
 
-<body class="bg-slate-100 h-screen flex flex-col items-center justify-center font-sans p-4">
-    <div class="w-full max-w-md flex justify-between items-center mb-6 px-2">
-        <div id="kutu_takim_a"
-            class="bg-white px-4 py-2 rounded-lg shadow text-blue-600 font-bold border-2 border-transparent transition-all">
-            Takım A: <span id="skor_a" class="text-xl">0</span></div>
-        <div id="ogrenci_sayac"
-            class="bg-red-500 text-white text-3xl font-black px-6 py-2 rounded-xl shadow-lg transition-colors">90</div>
-        <div id="kutu_takim_b"
-            class="bg-white px-4 py-2 rounded-lg shadow text-green-600 font-bold border-2 border-transparent transition-all">
-            Takım B: <span id="skor_b" class="text-xl">0</span></div>
+    <div class="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center rounded-b-2xl">
+        <div class="font-bold text-lg">👨‍🎓 <span id="kullanici_adi_gostergesi">Oyuncu</span></div>
+        <div class="bg-blue-800 px-3 py-1 rounded-full text-xs font-black tracking-widest shadow-inner">OYUNDA</div>
     </div>
-    <div id="oyun_karti"
-        class="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden border-2 border-slate-200 min-h-[300px] flex flex-col">
-        <div class="bg-slate-200 text-slate-500 text-center py-16 flex-1 flex flex-col items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto mb-4 animate-spin text-slate-400"
-                fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            <h2 class="text-2xl font-bold">Hocanın Kelimeyi Seçmesi Bekleniyor...</h2>
+
+    <div class="flex-1 p-4 flex flex-col">
+        <div class="bg-white rounded-2xl shadow-sm p-4 mb-4 flex justify-between items-center border border-slate-200">
+            <div class="text-center">
+                <p class="text-xs font-bold text-slate-400 uppercase">Takım A</p>
+                <p id="skor_a" class="text-2xl font-black text-blue-600">0</p>
+            </div>
+            <div class="text-center bg-slate-800 px-6 py-2 rounded-xl shadow-inner">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">SÜRE</p>
+                <p id="sayac" class="text-4xl font-black text-red-500 font-mono">90</p>
+            </div>
+            <div class="text-center">
+                <p class="text-xs font-bold text-slate-400 uppercase">Takım B</p>
+                <p id="skor_b" class="text-2xl font-black text-green-600">0</p>
+            </div>
+        </div>
+
+        <div id="kelime_karti" class="flex-1 bg-white rounded-3xl shadow-lg border-t-8 border-slate-800 p-6 flex flex-col justify-center items-center relative overflow-hidden transition-all">
+            <div id="durum_mesaji" class="text-center">
+                <div class="animate-bounce text-4xl mb-4">⏳</div>
+                <h2 class="text-xl font-black text-slate-700">LÜTFEN BEKLEYİNİZ</h2>
+                <p class="text-slate-500 text-sm mt-2 font-medium">Oyun hocanız tarafından başlatılacak...</p>
+            </div>
+
+            <div id="aktif_kelime_alani" class="hidden w-full text-center">
+                <span id="k_seviye" class="absolute top-4 right-4 bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-bold border border-slate-200"></span>
+                <p class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Hedef Kelime</p>
+                <h1 id="k_kelime" class="text-4xl sm:text-5xl font-black text-slate-800 mb-8 break-words uppercase"></h1>
+                
+                <div class="bg-red-50 rounded-2xl p-4 border border-red-100 w-full max-w-sm mx-auto shadow-inner">
+                    <p class="text-xs font-black text-red-400 uppercase tracking-widest mb-3 flex items-center justify-center gap-1"><span>🚫</span> YASAKLI KELİMELER</p>
+                    <ul id="k_yasaklilar" class="space-y-2 text-lg font-bold text-slate-700 uppercase"></ul>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
         const socket = io();
-        let sayacInterval;
-        const audioCorrect = new Audio('/static/sounds/correct.mp3');
-        const audioFail = new Audio('/static/sounds/fail.mp3');
-        const audioBeep = new Audio('/static/sounds/beep.mp3');
-        const audioStart = new Audio('/static/sounds/start.mp3');
+        const oyuncuIsmi = localStorage.getItem('tabuu_oyuncu_ismi') || 'Misafir_' + Math.floor(Math.random()*1000);
+        document.getElementById('kullanici_adi_gostergesi').innerText = oyuncuIsmi;
 
-        const oyuncuIsmi = localStorage.getItem('tabuu_oyuncu_ismi');
-        if (oyuncuIsmi) socket.emit('oyuna_katil', { isim: oyuncuIsmi });
-        else window.location.href = "/";
+        // SESLER DEVRE DIŞI BIRAKILDI
+        // const audioCorrect = new Audio('/static/sounds/correct.mp3');
+        // const audioFail = new Audio('/static/sounds/fail.mp3');
+        // const audioBeep = new Audio('/static/sounds/beep.mp3');
+        // const audioStart = new Audio('/static/sounds/start.mp3');
 
-        socket.on('yeni_kelime_geldi', function (paket) {
-            const anlatici = paket.anlatici;
-            const k = paket.kelime_verisi;
-            const kart = document.getElementById('oyun_karti');
+        socket.on('connect', () => { socket.emit('oyuna_katil', {isim: oyuncuIsmi}); });
 
-            if (oyuncuIsmi === anlatici) {
-                kart.innerHTML = `
-                    <div class="bg-blue-600 text-white text-center py-8">
-                        <p class="text-sm text-yellow-300 mb-1 uppercase tracking-wider font-bold animate-bounce">Sıra Sende!</p>
-                        <h2 class="text-5xl font-black tracking-wide">${k.kelime}</h2>
-                    </div>
-                    <div class="p-6 bg-slate-50">
-                        <p class="text-center text-red-500 font-bold mb-4">Yasaklı Kelimeler</p>
-                        <ul class="space-y-3">
-                            <li class="bg-white p-3 rounded-lg text-center text-lg font-semibold text-slate-700 shadow-sm border border-red-100">${k.yasaklilar[0]}</li>
-                            <li class="bg-white p-3 rounded-lg text-center text-lg font-semibold text-slate-700 shadow-sm border border-red-100">${k.yasaklilar[1]}</li>
-                            <li class="bg-white p-3 rounded-lg text-center text-lg font-semibold text-slate-700 shadow-sm border border-red-100">${k.yasaklilar[2]}</li>
-                            <li class="bg-white p-3 rounded-lg text-center text-lg font-semibold text-slate-700 shadow-sm border border-red-100">${k.yasaklilar[3]}</li>
-                        </ul>
-                    </div>`;
-            } else {
-                kart.innerHTML = `
-                    <div class="bg-slate-100 text-slate-600 text-center py-16 px-4 flex-1 flex flex-col items-center justify-center">
-                        <div class="text-7xl mb-4 animate-pulse">🗣️</div>
-                        <h2 class="text-2xl font-bold mb-2">Şu an <span class="text-blue-600 font-black">${anlatici}</span> anlatıyor!</h2>
-                        <p class="text-lg font-medium text-slate-500 mt-2">Sıradaki oyuncuyu takip et.</p>
-                    </div>`;
-            }
-        });
-
-        socket.on('dogru_bildi_animasyonu', function (data) {
-            if (oyuncuIsmi === data.anlatici) {
-                audioCorrect.play();
-                confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
-            }
-        });
-
-        function yagdirUzgunYuz() {
-            const sadFace = confetti.shapeFromText({ text: '😢' });
-            const end = Date.now() + 2000;
-            (function frame() {
-                confetti({ particleCount: 5, angle: 270, spread: 120, origin: { x: Math.random(), y: -0.1 }, shapes: [sadFace], scalar: 3, gravity: 1.5, colors: ['#ffffff'] });
-                if (Date.now() < end) requestAnimationFrame(frame);
-            }());
-        }
-
-        socket.on('tabuu_animasyonu', function (data) {
-            if (oyuncuIsmi === data.anlatici) { audioFail.play(); yagdirUzgunYuz(); }
-        });
-
-        socket.on('sayac_basladi', function (data) {
-            audioStart.play();
-            sayaciDondur(data.sure);
-        });
-
-        // Hoca yeni oyun başlattığında eski oyuncuları at
-        socket.on('oyun_sifirlandi', function () {
+        socket.on('oyun_sifirlandi', function() {
             alert("Oyun hocanız tarafından sonlandırıldı veya yeniden başlatıldı.");
             window.location.href = "/";
         });
 
-        socket.on('sayac_beklemede', function () {
-            clearInterval(sayacInterval);
-            document.getElementById('ogrenci_sayac').classList.replace('bg-red-600', 'bg-orange-500');
+        socket.on('skor_guncellendi', function(data) {
+            document.getElementById('skor_a').innerText = data.takim_a_skor;
+            document.getElementById('skor_b').innerText = data.takim_b_skor;
         });
 
-        socket.on('sayac_durdu', function () { durdurVeTemizle(); });
+        socket.on('yeni_kelime_geldi', function(paket) {
+            const k = paket.kelime_verisi;
+            if(paket.anlatici === oyuncuIsmi) {
+                // audioStart.play().catch(e=>console.log(e)); // Ses kapatıldı
+                document.getElementById('durum_mesaji').classList.add('hidden');
+                document.getElementById('aktif_kelime_alani').classList.remove('hidden');
+                document.getElementById('k_seviye').innerText = k.seviye;
+                document.getElementById('k_kelime').innerText = k.kelime;
+                
+                const ul = document.getElementById('k_yasaklilar');
+                ul.innerHTML = '';
+                k.yasaklilar.forEach(yasakli => {
+                    if(yasakli && yasakli.trim() !== "") {
+                        ul.innerHTML += `<li class="border-b border-red-100 pb-1 last:border-0">${yasakli}</li>`;
+                    }
+                });
+                document.getElementById('kelime_karti').classList.remove('border-slate-800');
+                document.getElementById('kelime_karti').classList.add('border-blue-500', 'ring-4', 'ring-blue-100');
+            } else {
+                document.getElementById('durum_mesaji').classList.remove('hidden');
+                document.getElementById('aktif_kelime_alani').classList.add('hidden');
+                document.getElementById('durum_mesaji').innerHTML = `
+                    <div class="text-4xl mb-4">🎤</div>
+                    <h2 class="text-xl font-black text-slate-700">SIRA SENDE DEĞİL</h2>
+                    <p class="text-blue-600 font-bold mt-2 text-lg uppercase">${paket.anlatici}</p>
+                    <p class="text-slate-500 text-sm font-medium">anlatıyor, dikkatle dinle!</p>`;
+                document.getElementById('kelime_karti').classList.add('border-slate-800');
+                document.getElementById('kelime_karti').classList.remove('border-blue-500', 'ring-4', 'ring-blue-100');
+            }
+        });
+
+        // ÇİFTE KİLİTLİ SAYAÇ SİSTEMİ (ÖĞRENCİ)
+        let sayacInterval;
+        let globalKalanSure = 90;
+
+        socket.on('sayac_basladi', function(data) { sayaciDondur(data.sure); });
+        socket.on('sayac_devam_ediyor', function(data) { sayaciDondur(data.sure); });
+        
+        socket.on('sayac_beklemede', function() { clearInterval(sayacInterval); });
+        socket.on('sayac_durdu', function() { clearInterval(sayacInterval); });
 
         function sayaciDondur(sure) {
-            let kalan = sure;
-            const sayacKutusu = document.getElementById('ogrenci_sayac');
-            sayacKutusu.innerText = kalan;
-            sayacKutusu.classList.remove('bg-orange-500');
-            sayacKutusu.classList.add('animate-pulse', 'bg-red-600');
-            clearInterval(sayacInterval);
-
+            clearInterval(sayacInterval); 
+            
+            globalKalanSure = sure;
+            document.getElementById('sayac').innerText = globalKalanSure;
+            
             sayacInterval = setInterval(() => {
-                kalan--; sayacKutusu.innerText = kalan;
-                if (kalan <= 7) audioBeep.play();
-                if (kalan <= 0) {
-                    durdurVeTemizle();
-                    if (document.querySelector('h2.text-5xl')) { audioFail.play(); yagdirUzgunYuz(); }
+                globalKalanSure--;
+                // if(globalKalanSure <= 5 && globalKalanSure > 0) { audioBeep.play().catch(e=>console.log(e)); } // Ses kapatıldı
+                
+                if(globalKalanSure <= 0) {
+                    globalKalanSure = 0;
+                    clearInterval(sayacInterval); 
                 }
+                
+                document.getElementById('sayac').innerText = globalKalanSure;
             }, 1000);
         }
 
-        function durdurVeTemizle() {
-            clearInterval(sayacInterval);
-            document.getElementById('ogrenci_sayac').classList.remove('animate-pulse', 'bg-red-600', 'bg-orange-500');
-        }
+        // ZORUNLU DURDURMA: Animasyon geldiği an sayaç kilitlenir
+        socket.on('dogru_bildi_animasyonu', function(data) {
+            clearInterval(sayacInterval); 
+            // if(data.anlatici === oyuncuIsmi) audioCorrect.play().catch(e => console.log(e)); // Ses kapatıldı
+            
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        });
 
-        socket.on('skor_guncellendi', function (data) {
-            document.getElementById('skor_a').innerText = data.takim_a_skor;
-            document.getElementById('skor_b').innerText = data.takim_b_skor;
-            if (data.aktif_takim === 'A') {
-                document.getElementById('kutu_takim_a').classList.replace('border-transparent', 'border-blue-400');
-                document.getElementById('kutu_takim_b').classList.replace('border-green-400', 'border-transparent');
-            } else {
-                document.getElementById('kutu_takim_b').classList.replace('border-transparent', 'border-green-400');
-                document.getElementById('kutu_takim_a').classList.replace('border-blue-400', 'border-transparent');
-            }
+        socket.on('tabuu_animasyonu', function(data) {
+            clearInterval(sayacInterval); 
+            // if(data.anlatici === oyuncuIsmi) audioFail.play().catch(e => console.log(e)); // Ses kapatıldı
+            
+            document.body.classList.add('bg-red-600');
+            document.body.classList.remove('bg-slate-100');
+            setTimeout(() => {
+                document.body.classList.add('bg-slate-100');
+                document.body.classList.remove('bg-red-600');
+            }, 1000);
         });
     </script>
 </body>
-
 </html>

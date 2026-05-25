@@ -6,6 +6,7 @@ from flask_socketio import SocketIO
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'cok_gizli_tabuu_sifresi_2026'
+# CORS izni eklendi: Telefondan veya başka ağdan gelen bağlantıları engellemez
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 ADMIN_SIFRESI = "Almanca123!" 
@@ -178,6 +179,7 @@ def sureyi_beklet():
 
 @socketio.on('sureyi_devam_ettir')
 def sureyi_devam_ettir(data): 
+    # SENKRONİZASYON ÇÖZÜMÜ: Devam et denildiğinde sanki baştan başlıyormuş gibi sinyal yolla
     socketio.emit('sayac_basladi', data)
 
 @socketio.on('dogru_bildi')
