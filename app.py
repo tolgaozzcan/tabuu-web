@@ -8,11 +8,9 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'cok_gizli_tabuu_sifresi_2026'
 socketio = SocketIO(app)
 
-# --- SİSTEM YÖNETİMİ ---
-ADMIN_SIFRESI = "Almanca123!" # Hocanın giriş şifresi
-aktif_oda_id = None # Sistemde aynı anda sadece 1 aktif oda olacak
+ADMIN_SIFRESI = "Almanca123!" 
+aktif_oda_id = None 
 
-# Oyun hafızası
 oyun_durumu = {'takim_a_skor': 0, 'takim_b_skor': 0, 'aktif_takim': 'A'}
 oyuncular = {'bekleme': [], 'takim_a': [], 'takim_b': []}
 baglantilar = {} 
@@ -32,13 +30,13 @@ def kelimeleri_hocaya_yolla():
         paket.append({'seviye': k[1], 'kelime': k[2], 'yasaklilar': [k[3], k[4], k[5], k[6]]})
     socketio.emit('kelime_havuzu', paket)
 
-# ==========================================
-# WEB SAYFALARI (SAYFA YÖNLENDİRMELERİ)
-# ==========================================
-
 @app.route('/')
 def ana_sayfa(): 
     return render_template('index.html')
+
+@app.route('/ogrenci')
+def ogrenci_girisi(): 
+    return render_template('ogrenci.html')
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_giris():
@@ -56,25 +54,17 @@ def admin_panel():
     global aktif_oda_id, oyun_durumu, oyuncular, baglantilar
     if not session.get('hoca_mi'): return redirect(url_for('admin_giris'))
     
-    # Hoca "Yeni Oyun Başlat" butonuna bastığında
     if request.method == 'POST':
-        # 4 haneli rastgele kod üret (Örn: TABUU-5921)
         rastgele = ''.join(random.choices(string.digits, k=4))
         aktif_oda_id = f"TABUU-{rastgele}"
-        
-        # Sistemi tamamen sıfırla (Önceki dersten kalanları temizle)
         oyun_durumu = {'takim_a_skor': 0, 'takim_b_skor': 0, 'aktif_takim': 'A'}
         oyuncular = {'bekleme': [], 'takim_a': [], 'takim_b': []}
         baglantilar = {}
-        
-        # Herkesin ekranına "Oyun sıfırlandı, çıkış yapın" sinyali gönder
         socketio.emit('oyun_sifirlandi')
-        
         return redirect(url_for('hoca_paneli'))
         
     return render_template('panel.html', oda_id=aktif_oda_id)
 
-# YENİ EKLENEN KISIM: Öğrenci giriş yaparken Oda ID'si doğru mu diye kontrol eder
 @app.route('/oda_kontrol', methods=['POST'])
 def oda_kontrol():
     gelen_id = request.json.get('oda_id', '').strip().upper()
@@ -97,28 +87,6 @@ def ortak_tahta():
 def oyun_sayfasi():
     if not aktif_oda_id: return redirect(url_for('ana_sayfa'))
     return render_template('oyun.html')
-
-# ==========================================
-# WEB SAYFALARI (SAYFA YÖNLENDİRMELERİ)
-# ==========================================
-
-@app.route('/')
-def ana_sayfa(): 
-    # YENİ: Ortak Karşılama Lobisi
-    return render_template('index.html')
-
-@app.route('/ogrenci')
-def ogrenci_girisi(): 
-    # ESKİ: Öğrenci isim ve ID girme ekranı
-    return render_template('ogrenci.html')
-
-@app.route('/admin', methods=['GET', 'POST'])
-def admin_giris():
-# ... (app.py'nin geri kalanı tamamen aynı kalacak)
-
-# ==========================================
-# SOKET İŞLEMLERİ (OYUN MANTIĞI)
-# ==========================================
 
 @socketio.on('oyuna_katil')
 def handle_katil(data):
@@ -201,13 +169,16 @@ def manuel_kelime_yolla(data):
     socketio.emit('yeni_kelime_geldi', {'kelime_verisi': data, 'anlatici': aktif_oyuncu})
 
 @socketio.on('sureyi_baslat')
-def sure_baslat(): socketio.emit('sayac_basladi', {'sure': 90})
+def sure_baslat(): 
+    socketio.emit('sayac_basladi', {'sure': 90})
 
 @socketio.on('sureyi_beklet')
-def sureyi_beklet(): socketio.emit('sayac_beklemede')
+def sureyi_beklet(): 
+    socketio.emit('sayac_beklemede')
 
 @socketio.on('sureyi_devam_ettir')
-def sureyi_devam_ettir(data): socketio.emit('sayac_devam_ediyor', data)
+def sureyi_devam_ettir(data): 
+    socketio.emit('sayac_devam_ediyor', data)
 
 @socketio.on('dogru_bildi')
 def dogru_islem():
@@ -225,7 +196,6 @@ def dogru_islem():
         oyuncular[aktif_anahtar].append(kisi)
 
     oyun_durumu['aktif_takim'] = rakip
-
     socketio.emit('skor_guncellendi', oyun_durumu)
     socketio.emit('oyuncular_guncellendi', oyuncular)
     socketio.emit('sayac_durdu')
@@ -247,7 +217,6 @@ def tabuu_islem():
         oyuncular[aktif_anahtar].append(kisi)
 
     oyun_durumu['aktif_takim'] = rakip
-
     socketio.emit('skor_guncellendi', oyun_durumu)
     socketio.emit('oyuncular_guncellendi', oyuncular)
     socketio.emit('sayac_durdu')
